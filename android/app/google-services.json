@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "8828578557",
+    "project_id": "ceng-10021",
+    "storage_bucket": "ceng-10021.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:8828578557:android:8acd822e74a645a668ac94",
+        "android_client_info": {
+          "package_name": "com.example.final_project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "8828578557-1hr5kk3prbn2t293crvdn1niea78bfsc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3rOVqERqJaXS3GU9K31RI_h-36Al4nVE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "8828578557-1hr5kk3prbn2t293crvdn1niea78bfsc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
