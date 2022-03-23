@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Import our screens here!
+import 'screens/login.dart';
+import 'screens/register.dart';
+import 'package:final_project/screens/settings.dart';
+import 'package:final_project/screens/landing.dart';
+import 'package:final_project/screens/country_select.dart';
+import 'package:final_project/screens/street_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,36 +25,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Final Project',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-
-  void _test() {
-
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-        ),
-        body: null
+      initialRoute: FirebaseAuth.instance.currentUser == null ? '/login' : '/main',
+      routes: {
+        '/login': (context) => Login(),
+        '/register': (context) => const Register(),
+        '/main': (context) => const Landing(),
+        '/settings': (context) => const Settings(),
+        '/country': (context) => const CountrySelection(),
+        '/streetview': (context) => StreetView(),
+      },
     );
   }
 }
