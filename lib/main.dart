@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,6 +25,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    // TODO -> Custom theme
+
     return MaterialApp(
       title: 'Final Project',
       theme: ThemeData(
@@ -36,7 +40,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const Register(),
         '/main': (context) => const Landing(),
         '/settings': (context) => const Settings(),
-        '/country': (context) => const CountrySelection(),
+        '/country': (context) => CountrySelect(),
         '/streetview': (context) => StreetView(),
       },
     );

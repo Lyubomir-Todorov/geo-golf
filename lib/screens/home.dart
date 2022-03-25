@@ -18,10 +18,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   }
 
   _gotoMatch() {
-    Navigator.pushNamed(context, '/country');
+    Navigator.pushNamed(context, '/streetview');
+    //Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
   }
-  _gotoSV() {
-    Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
+
+  _gotoTest() {
+    Navigator.pushNamed(context, '/test');
+    //Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
   }
 
   @override
@@ -63,7 +66,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     ),
 
 
-                    ElevatedButton(onPressed: () {_gotoSV();}, child: const Text("Street view test")),
+                    ElevatedButton(onPressed: () {_gotoTest();}, child: const Text("Testing page")),
                     ElevatedButton(onPressed: () {_gotoMatch();}, child: const Text("Start Match"))
                   ],
                 );

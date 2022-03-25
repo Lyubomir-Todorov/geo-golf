@@ -1,88 +1,119 @@
+import 'package:final_project/screens/street_view.dart';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_maps/maps.dart';
+import 'package:wakelock/wakelock.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:georange/georange.dart';
 
-import '../data/country_data.dart';
+// TODO -> Save camera position and marker location as arguments
 
-class CountrySelection extends StatefulWidget {
-  const CountrySelection({Key? key}) : super(key: key);
+GeoRange georange = GeoRange();
+
+class CountrySelect extends StatefulWidget {
+  const CountrySelect({Key? key}) : super(key: key);
 
   @override
-  _CountrySelectionState createState() => _CountrySelectionState();
+  _CountrySelectState createState() => _CountrySelectState();
 }
 
-class _CountrySelectionState extends State<CountrySelection> {
-  late MapShapeSource _selectionMapSource;
-  late MapZoomPanBehavior _zoomPanBehavior;
-  int _selectedIndex = -1;
+class _CountrySelectState extends State<CountrySelect> {
 
-  _switchCountries(int index) {
-    setState(() {
-      _selectedIndex = (index == _selectedIndex) ? -1 : index;
-    });
+  // Google maps examples can be found here!
+  // https://github.com/flutter/plugins/tree/main/packages/google_maps_flutter/google_maps_flutter/example/lib
+  final int _markerIdCounter = 1;
+
+  GoogleMapController? controller;
+  Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
+  MarkerId? selectedMarker;
+  LatLng? markerPosition;
+
+  Marker? guessMarker;
+  LatLng? _guessPosition;
+
+  Coordinates? _actualPosition;
+
+
+  void _onMapCreated(GoogleMapController controller) {
+    this.controller = controller;
+  }
+
+  @override
+  void dispose() {
+    Wakelock.disable();
+    super.dispose();
   }
 
   @override
   void initState() {
-    _zoomPanBehavior = MapZoomPanBehavior();
-    _selectionMapSource = MapShapeSource.asset(
-      'assets/world_map.json',
-      shapeDataField: 'name',
-      dataCount: countries.length,
-      primaryValueMapper: (int index) => countries[index].name,
-    );
-
+    Wakelock.enable();
     super.initState();
   }
+
+  void _onMapTap(LatLng coords) {
+    print("This is getting triggered every time we tap the map... hopefully :)");
+    print("Tapped at ${coords.latitude} ${coords.longitude}");
+
+    _setGuessLocation(coords);
+  }
+
+  void _setGuessLocation(LatLng coords) {
+
+    final String markerIdVal = 'marker_id_$_markerIdCounter';
+    final MarkerId markerId = MarkerId(markerIdVal);
+
+    final Marker marker = Marker(
+      consumeTapEvents: true,
+      markerId: markerId,
+      position: coords
+    );
+
+    setState(() {
+      markers[markerId] = marker;
+      _guessPosition = coords;
+    });
+
+    _calculateDistance();
+  }
+
+  void _calculateDistance() {
+    Point point1 = Point(latitude: _guessPosition!.latitude, longitude: _guessPosition!.longitude); //Mombasa
+    Point point2 = Point(latitude: _actualPosition!.latitude, longitude: _actualPosition!.longitude); // Nairobi
+
+    var distance = georange.distance(point1, point2);
+    print(distance);
+  }
+
   @override
   Widget build(BuildContext context) {
+    _actualPosition = ModalRoute.of(context)!.settings.arguments as Coordinates;
     return Scaffold(
-      backgroundColor: Colors.blue[300],
-      appBar: AppBar(title: const Center(child: Text(''))),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      extendBodyBehindAppBar: true,
       body: SafeArea(
+        top: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: SfMaps(
-                layers: [
-                  MapShapeLayer(
-                    loadingBuilder: (BuildContext context) {
-                      return const Center(
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    },
-                    source: _selectionMapSource,
-                    selectedIndex: _selectedIndex,
-                    color: Colors.green[300],
-                    selectionSettings: const MapSelectionSettings(
-                      color: Colors.orange,
-                    ),
-                    onSelectionChanged: (int index) {
-                      _switchCountries(index);
-                    },
-                    zoomPanBehavior: _zoomPanBehavior,
-                  ),
-                ],
+              child: GoogleMap(
+                onMapCreated: _onMapCreated,
+                onTap: _onMapTap,
+                zoomControlsEnabled: false,
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(30, -45),
+                ),
+                markers: Set<Marker>.of(markers.values),
               ),
             ),
-
-            (_selectedIndex != -1) ?
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(countries[_selectedIndex].name),
-                  ElevatedButton(onPressed: () {}, child: const Text("Guess!"))
-                ],
+              child: ElevatedButton(
+                onPressed: _guessPosition == null ? null : () {},
+                child: const Text('GUESS!'),
               ),
-            ):
-            const Text('')
-
-
+            )
           ],
         ),
       ),
