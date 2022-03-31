@@ -44,8 +44,11 @@ class _RegisterState extends State<Register> {
         'first_name': _firstNameFieldController.text,
         'last_name': _lastNameFieldController.text,
         'points' : 0,
+        'level' : 0,
+        'xp' : 0,
       }).then((value) => print("User Added"))
       .catchError((error) => print("Failed to add user: $error"));
+
 
       // Everything has been done correctly, lets go to the main screen
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
@@ -73,7 +76,7 @@ class _RegisterState extends State<Register> {
               children: [
                 const Text('Create a new account'),
 
-                // TODO: Enforce validation on the form
+                // TODO -> Enforce validation on the form
 
                 TextFormField(
                   keyboardType: TextInputType.name,

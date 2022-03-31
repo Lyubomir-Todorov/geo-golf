@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -17,13 +18,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     return users.get();
   }
 
-  _gotoMatch() {
-    Navigator.pushNamed(context, '/streetview');
-    //Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
-  }
+  _gotoMatch() async {
+    final prefs = await SharedPreferences.getInstance();
+    var t = prefs.getBool("showTutorial");
 
-  _gotoTest() {
-    Navigator.pushNamed(context, '/test');
+    Navigator.pushNamed(context, (t == true || t == null) ? '/how_to_play' : '/streetview');
+
     //Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
   }
 
@@ -36,10 +36,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     super.build(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Center(child: Text('Final Project'))),
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text('GeoGolf'),
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(16.0),
           child: FutureBuilder(
             future: _getUserInfo(),
             builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
@@ -65,14 +68,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                       ],
                     ),
 
-
-                    ElevatedButton(onPressed: () {_gotoTest();}, child: const Text("Testing page")),
                     ElevatedButton(onPressed: () {_gotoMatch();}, child: const Text("Start Match"))
                   ],
                 );
               }
 
-              return const CircularProgressIndicator();
+              return const Center(child: CircularProgressIndicator());
             }
           ),
         ),

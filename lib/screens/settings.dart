@@ -26,16 +26,19 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Center(child: Text('Settings'))),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text('This is the settings'),
-              ElevatedButton(onPressed: () {_logout();}, child: const Text("Logout"))
+              ElevatedButton(onPressed: () {_logout();}, child: const Text("Sign out"))
             ],
           )
         ),

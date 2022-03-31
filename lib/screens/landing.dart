@@ -44,24 +44,25 @@ class _LandingState extends State<Landing> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:  PageView(
+      body: PageView(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
         children: _pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: FaIcon(FontAwesomeIcons.solidChartBar),
-            label: 'Your stats',
+            label: 'Stats',
           ),
           BottomNavigationBarItem(
             icon: FaIcon(FontAwesomeIcons.houseChimney),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: FaIcon(FontAwesomeIcons.gear),
-            label: 'Settings',
+            icon: FaIcon(FontAwesomeIcons.solidUser),
+            label: 'Profile',
           ),
         ],
         currentIndex: _selectedPageIndex,

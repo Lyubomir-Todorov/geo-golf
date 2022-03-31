@@ -1,3 +1,4 @@
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,10 +8,10 @@ import 'firebase_options.dart';
 // Import our screens here!
 import 'screens/login.dart';
 import 'screens/register.dart';
-import 'package:final_project/screens/settings.dart';
 import 'package:final_project/screens/landing.dart';
-import 'package:final_project/screens/country_select.dart';
 import 'package:final_project/screens/street_view.dart';
+import 'package:final_project/screens/how_to_play.dart';
+import 'package:final_project/screens/match_results.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
     // TODO -> Custom theme
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Final Project',
       theme: ThemeData(
         primarySwatch: Colors.teal,
@@ -39,9 +41,9 @@ class MyApp extends StatelessWidget {
         '/login': (context) => Login(),
         '/register': (context) => const Register(),
         '/main': (context) => const Landing(),
-        '/settings': (context) => const Settings(),
-        '/country': (context) => CountrySelect(),
-        '/streetview': (context) => StreetView(),
+        '/how_to_play': (context) => const HowToPlay(),
+        '/streetview': (context) => const StreetView(),
+        '/match_results': (context) => const MatchResults(),
       },
     );
   }

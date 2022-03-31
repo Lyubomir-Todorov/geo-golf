@@ -18,8 +18,8 @@ class _LoginState extends State<Login> {
   _signIn() async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: "1@2.com",
-        password: "password"
+        email: _emailFieldController.text,
+        password: _passwordFieldController.text
       );
 
       // Any code passed this point means login was successful
@@ -40,7 +40,6 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Final Project')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
