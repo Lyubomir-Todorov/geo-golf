@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 
 class Register extends StatefulWidget {
@@ -14,11 +15,9 @@ class Register extends StatefulWidget {
 class _RegisterState extends State<Register> {
   final _formKey = GlobalKey<FormState>();
 
-  final _firstNameFieldController = TextEditingController();
-  final _lastNameFieldController = TextEditingController();
+  final _nameFieldController = TextEditingController();
   final _emailFieldController = TextEditingController();
   final _passwordFieldController = TextEditingController();
-  final _passwordConfirmationFieldController = TextEditingController();
 
   _register() async {
     try {
@@ -39,13 +38,13 @@ class _RegisterState extends State<Register> {
 
       // TODO -> Enforce security roles in firebase console
       // Only create this document if points is 0
-
+      DateTime now = DateTime.now();
       users.set({
-        'first_name': _firstNameFieldController.text,
-        'last_name': _lastNameFieldController.text,
+        'name': _nameFieldController.text,
         'points' : 0,
-        'level' : 0,
+        'level' : 1,
         'xp' : 0,
+        'member_since' : DateFormat('MMMM dd, y').format(now),
       }).then((value) => print("User Added"))
       .catchError((error) => print("Failed to add user: $error"));
 
@@ -67,86 +66,70 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Form(
-            child: ListView(
-              children: [
-                const Text('Create a new account'),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 32.0, right: 32.0, top: 32.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
 
-                // TODO -> Enforce validation on the form
+                  Image.asset('images/splash_register.png'),
 
-                TextFormField(
-                  keyboardType: TextInputType.name,
-                  textInputAction: TextInputAction.next,
-                  controller: _firstNameFieldController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your first name',
-                    labelText: 'First name',
+                  const SizedBox(height: 32),
+                  Text(
+                    'Sign up',
+                    style: Theme.of(context).textTheme.headline5,
                   ),
-                  autofocus: true,
-                  validator: (value) {
-                    return null;
-                  },
-                ),
-
-                TextFormField(
-                  keyboardType: TextInputType.name,
-                  textInputAction: TextInputAction.next,
-                  controller: _lastNameFieldController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your last name',
-                    labelText: 'Last name',
+                  // TODO -> Enforce validation on the form
+                  TextFormField(
+                    keyboardType: TextInputType.name,
+                    textInputAction: TextInputAction.next,
+                    controller: _nameFieldController,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your full name',
+                      labelText: 'Full name',
+                    ),
+                    validator: (value) {
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    return null;
-                  },
-                ),
 
-                TextFormField(
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  controller: _emailFieldController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your email',
-                    labelText: 'Email address',
+                  TextFormField(
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    controller: _emailFieldController,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your email address',
+                      labelText: 'Email address',
+                    ),
+                    validator: (value) {
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    return null;
-                  },
-                ),
 
-                TextFormField(
-                  keyboardType: TextInputType.visiblePassword,
-                  textInputAction: TextInputAction.next,
-                  controller: _passwordFieldController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your password',
-                    labelText: 'Password',
+                  TextFormField(
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.next,
+                    controller: _passwordFieldController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter your password',
+                      labelText: 'Password',
+                    ),
+                    validator: (value) {
+                      return null;
+                    },
                   ),
-                  validator: (value) {
-                    return null;
-                  },
-                ),
 
-                TextFormField(
-                  keyboardType: TextInputType.visiblePassword,
-                  textInputAction: TextInputAction.done,
-                  controller: _passwordConfirmationFieldController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Confirm your password',
-                    labelText: 'Confirm password',
-                  ),
-                  validator: (value) {
-                    return null;
-                  },
-                ),
-                ElevatedButton(onPressed: () {_register();}, child: const Text('Submit')),
-              ],
+                  const SizedBox(height: 16),
+
+                  ElevatedButton(onPressed: () {_register();}, child: const Text('Sign up')),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,18 +1,21 @@
 import 'package:final_project/classes/match_history.dart';
+import 'package:final_project/widgets/chart_performance.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:async/async.dart';
 
 import '../classes/guess.dart';
 import '../classes/results.dart';
 
-// TODO -> For the chart requirement, show past 30 days and closest distance?
-// TODO -> Match history, favourite certain matches
+class ScreenArguments {
+  late Results results;
+  late String uid;
+  late bool favourite;
+
+  ScreenArguments(this.results, this.uid, this.favourite);
+}
 
 class Stats extends StatefulWidget {
   const Stats({Key? key}) : super(key: key);
@@ -26,20 +29,40 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
   List<MatchHistory> match = [];
   List<MatchHistory> matchFavourite = [];
 
-
-  List<Guess> _guesses = [];
-  Map<MarkerId, Marker> _markers = <MarkerId, Marker>{};
+  final List<Guess> _guesses = [];
+  final Map<MarkerId, Marker> _markers = <MarkerId, Marker>{};
   int _markerIdCounter = 1;
   bool _showAll = true;
-
-  Map<String, dynamic> _data = {};
+  
   DocumentReference matches =  FirebaseFirestore.instance.collection('match_history')
       .doc(FirebaseAuth.instance.currentUser?.uid);
 
   late Future<DocumentSnapshot> future;
 
   Future<DocumentSnapshot> _getMatchHistory() async {
-    return matches.get();
+    return await matches.get();
+  }
+
+  _setMatchData(Future<DocumentSnapshot> d) {
+
+    // Sort each match by timestamp
+    // Since each field in match_history has a uniquely generated id
+    // They are NOT in order when we retrieve them from Firebase
+
+    d.then((value) {
+      Map<String, dynamic> data = value.data() as Map<String, dynamic>;
+      data.forEach((key, value) {
+        var mat = MatchHistory.fromJson(value);
+        match.add(mat);
+      });
+      match.sort((a, b) {
+        var aAsDate = DateTime.parse(a.timestamp);
+        var bAsDate = DateTime.parse(b.timestamp);
+        return bAsDate.compareTo(aAsDate);
+      });
+      matchFavourite = match.where((element) => element.favourite).toList();
+    });
+
   }
 
   _setMatchSpecificData(int index) {
@@ -49,31 +72,32 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
     _markerIdCounter = 1;
 
     // Get only the data pertaining to the specific match clicked
-    Map<String, dynamic> _dataIndex = _data['data'][index];
-    List _dataGuesses = _dataIndex['guesses'];
+
+    int ind = index;
+    if (!_showAll) ind = match.indexOf(matchFavourite[index]);
+
+    MatchHistory mat = match[ind];
 
     // Iterate through 5 guesses and convert them to actual map markers
-    for(var i in _dataGuesses) {
-      LatLng coord = LatLng(i['lat'], i['lon']);
-      Guess guess = Guess(coord, i['distance'], GuessRank.values[i['quality']]);
+    for(var i in mat.coords) {
 
-      _guesses.add(guess);
+      _guesses.add(i);
 
       final String markerIdVal = 'marker_id_${_markerIdCounter++}';
       final MarkerId markerId = MarkerId(markerIdVal);
       Marker marker = Marker(
-        icon: guess.getMarkerColor(),
+        icon: i.getMarkerColor(),
         consumeTapEvents: true,
         markerId: markerId,
-        position: LatLng(coord.latitude, coord.longitude)
+        position: i.coordinates
       );
       _markers[markerId] = marker;
     }
 
     // Add the marker that corresponds to actual location
 
-    LatLng coord = LatLng(_dataIndex['actual_location']['lat'], _dataIndex['actual_location']['lon']);
-    Guess guess = Guess(coord, 0, GuessRank.excellent);
+    LatLng coord = mat.actual;
+    Guess guess = Guess(coordinates: coord, distance: 0, quality: GuessRank.excellent);
 
     _guesses.add(guess);
 
@@ -90,10 +114,24 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
   }
 
   _navigateToMatchResults(int index) {
+
+    int ind = index;
+    if (!_showAll) ind = match.indexOf(matchFavourite[index]);
+
     _setMatchSpecificData(index);
+
     Navigator.pushNamed(context, '/match_results',
-      arguments: Results(_guesses, _markers, isHistorical: true)
-    );
+      arguments: ScreenArguments(
+        Results(_guesses, _markers, isHistorical: true), match[ind].uid, match[ind].favourite
+      )
+    ).whenComplete(() {
+      setState(() {
+        match.clear();
+        matchFavourite.clear();
+        future = _getMatchHistory();
+        _setMatchData(future);
+      });
+    });
   }
 
   _toggleShow() {
@@ -104,22 +142,26 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
 
   _toggleFavourite(int index) {
 
-    // TODO -> Fix this mess lol
+    // Indices between match and matchFavourite are not the same
+    // If we are showing favourites, refer to match index based on the favourite object
+
+    int ind = index;
+    if (!_showAll) ind = match.indexOf(matchFavourite[index]);
 
     setState(() {
-      match[index].favourite = !match[index].favourite;
-      if (!_showAll) {
-        matchFavourite.removeAt(index);
-      }
+      match[ind].favourite = !match[ind].favourite;
+
+      // Rebuild matchFavourite list, keeps chronological order that way
+      matchFavourite = match.where((element) => element.favourite).toList();
     });
 
     try {
       DocumentReference matches = FirebaseFirestore.instance.collection('match_history').doc(FirebaseAuth.instance.currentUser?.uid);
 
       matches.update({
-        "${match[index].uid}.favourite" : match[index].favourite,
-      }).then((value) => print("Match history Added"))
-        .catchError((error) => print("Failed to add match history: $error"));
+        "${match[ind].uid}.favourite" : match[ind].favourite,
+      }).then((value) => print("Match history Favourite updated"))
+        .catchError((error) => print("Failed to update match history favouriting: $error"));
 
     } on FirebaseAuthException catch (e) {
       print(e);
@@ -130,17 +172,19 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
 
   }
 
-  List<Color> gradientColors = [
-    const Color(0xff13ff84),
-    const Color(0xff13ff84),
-  ];
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
+
+    // Calls the future once in the component lifecycle
+    // Otherwise, future is executed each time in the build cycle
+    // This includes when we favourite and unfavourite things
+    // Bad UX / Efficiency if we need to fetch from firebase each time we do that
+
     future = _getMatchHistory();
+    _setMatchData(future);
     super.initState();
   }
 
@@ -156,13 +200,13 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
           child: FutureBuilder(
             future: future,
             builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
               if (snapshot.hasError) {
-                return const Center(
-                    child: Text("Something went wrong, please try again!")
+                return Center(
+                  child: Text(snapshot.error.toString())
                 );
               }
 
@@ -172,112 +216,12 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
                 );
               }
 
-              // TODO -> Fix Favouring
-              // When we favourite one of the list items, we use setState() to rerender the item and show updates
-              // The problem is, futurebuilder is also rebuilt each time
-              // This is why we can't see anything changing
-              // Our future has been called already so we wont get the new values from firebase
-              // And we remake the lists using that old future...
-
               if (snapshot.connectionState == ConnectionState.done) {
-                match = [];
-                matchFavourite = [];
-
-                Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
-                _data = data;
-
-                data.forEach((uid, map) {
-                  var m = map;
-                  var g = m['guesses'] as List;
-                  List<LatLng> coords = [];
-
-                  for (var element in g) {
-                    coords.add(LatLng(element['lat'], element['lon']));
-                  }
-
-                  var mat = MatchHistory(
-                    m['date'],
-                    m['time'],
-                    coords,
-                    m['favourite'],
-                    m['best_distance'],
-                    m['uid']
-                  );
-
-                  match.add(mat);
-                  if (mat.favourite) matchFavourite.add(mat);
-
-                });
-
-                // Chart documentation here
-                // https://github.com/imaNNeoFighT/fl_chart/blob/master/repo_files/documentations/line_chart.md#sample-1-source-code
 
                 return Column(
                   children: [
                     Flexible(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.all(Radius.circular(16.0)),
-                        // TODO -> Move chart to a separate file
-                        child: LineChart(
-                          LineChartData(
-                            backgroundColor: Color(0xff3b315e),
-                            borderData: FlBorderData(
-                              show: false
-                            ),
-                            // TODO -> Change to show y-axis only
-                            titlesData: FlTitlesData(
-                              show: false
-                            ),
-                            gridData: FlGridData(
-                              drawVerticalLine: false,
-                              getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: const Color(0xff42395b),
-                                  strokeWidth: 3,
-                                );
-                              },
-                            ),
-                            minY: 0,
-                            maxY: 10,
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: const [
-                                  FlSpot(0, 5),
-                                  FlSpot(1, 5),
-                                  FlSpot(2, 5),
-                                  FlSpot(3, 7),
-                                  FlSpot(4, 5),
-                                  FlSpot(5, 5),
-                                ],
-                                isCurved: true,
-                                gradient: LinearGradient(
-                                  colors: gradientColors,
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                                barWidth: 8,
-                                isStrokeCapRound: true,
-                                dotData: FlDotData(show: false),
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                                          .lerp(0.2)!
-                                          .withOpacity(0.4),
-                                      ColorTween(begin: gradientColors[0], end: gradientColors[1])
-                                          .lerp(0.2)!
-                                          .withOpacity(0.4),
-                                    ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        ),
-                      ),
+                      child: ChartPerformance(data: _showAll ? match.reversed.toList() : matchFavourite.reversed.toList()),
                     ),
 
                     const SizedBox(height: 30),
@@ -294,37 +238,38 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
                       ],
                     ),
                     Flexible(
-                      child: ListView.builder(
-                        reverse: true,
+                      child: (!_showAll && matchFavourite.isEmpty) ?
+                      const Center(child: Text('No favourite matches')) :
+                      ListView.builder(
+                        reverse: false,
                         shrinkWrap: true,
-                        itemCount: match.length,
+                        itemCount: _showAll ? match.length : matchFavourite.length,
                         itemBuilder: (context, index) {
-
-                          return Card(
-                            elevation: 3.0,
-                            margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4.0),
-                            child: ListTile(
-                              title: Text('${match[index].bestDistance} km'),
-                              subtitle: Text('${match[index].date} - ${match[index].time}'),
-                              leading: IconButton(
-                                onPressed: () {_navigateToMatchResults(index);},
-                                icon: const FaIcon(FontAwesomeIcons.locationPin),
-                                tooltip: "View on map",
-                              ),
-                              trailing: IconButton(
-                                // TODO -> Make this actually favourite it
-                                onPressed: () {
-                                  _toggleFavourite(index);
-                                },
-                                // TODO -> Reflect changes in icon
-                                icon: FaIcon(
-                                  match[index].favourite ? FontAwesomeIcons.solidStar : FontAwesomeIcons.star
+                          var m = _showAll ? match : matchFavourite;
+                          return Column(
+                            children: [
+                              ListTile(
+                                title: Text('${m[index].bestDistance} km'),
+                                subtitle: Text('${m[index].date} - ${m[index].time}'),
+                                leading: IconButton(
+                                  onPressed: () {_navigateToMatchResults(index);},
+                                  icon: const FaIcon(FontAwesomeIcons.locationPin),
+                                  tooltip: "View on map",
                                 ),
-                                tooltip: match[index].favourite ? "Remove from favourites" : "Add to favourites",
-                                color: Colors.orange,
-                                iconSize: 20,
+                                trailing: IconButton(
+                                  onPressed: () {
+                                    _toggleFavourite(index);
+                                  },
+                                  icon: FaIcon(
+                                    m[index].favourite ? FontAwesomeIcons.solidStar : FontAwesomeIcons.star
+                                  ),
+                                  tooltip: m[index].favourite ? "Remove from favourites" : "Add to favourites",
+                                  color: Colors.orange,
+                                  iconSize: 20,
+                                ),
                               ),
-                            ),
+                              const Divider(thickness: 1),
+                            ],
                           );
                         },
                       ),

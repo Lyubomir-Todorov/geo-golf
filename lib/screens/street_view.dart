@@ -27,6 +27,7 @@ class _StreetViewState extends State<StreetView> {
   final PanelController panelController = PanelController();
 
   late LatLng _coordinates;
+  late String _streetViewId;
   double _searchRadius = 5;
   bool _locationFound = false;
   bool _panelIsOpen = false;
@@ -35,8 +36,10 @@ class _StreetViewState extends State<StreetView> {
     var randomArea = areasToSearch[ran.nextInt(areasToSearch.length)];
     setState(() {
       try {
-        //_coordinates = randomArea.getRandomPointWithinRadius();
-        _coordinates = LatLng(37.63613, -96.30114499999999);
+        _coordinates = randomArea.getRandomPointWithinRadius();
+
+        // Use this one when you're testing just so you dont eat up the street view api
+        // _coordinates = LatLng(37.63613, -96.30114499999999);
       } catch (a) {
         _generateValidCoordinates();
         _searchRadius = 5;
@@ -45,17 +48,76 @@ class _StreetViewState extends State<StreetView> {
     });
   }
 
-  _gotoGuessing() {
-    Navigator.pushNamed(
-      context, '/country',
-      arguments: Coordinates(_coordinates.latitude, _coordinates.longitude)
-    );
-  }
-
   _foundLocation() {
     setState(() {
       _locationFound = true;
     });
+  }
+
+  _setPanoId(String? id) {
+    setState(() {
+      _streetViewId = id!;
+    });
+  }
+
+  _gotoInitialStreetView() async {
+    setState(() {
+      streetViewController!.setPosition(panoId: _streetViewId).catchError((e){
+      });
+    });
+  }
+
+  _enableStreetViewGestures() {
+    setState(() {
+      _panelIsOpen = false;
+      streetViewController?.setZoomGesturesEnabled(true);
+      streetViewController?.setPanningGesturesEnabled(true);
+    });
+  }
+
+  _disableStreetViewGestures() {
+    setState(() {
+      _panelIsOpen = true;
+      streetViewController?.setZoomGesturesEnabled(false);
+      streetViewController?.setPanningGesturesEnabled(false);
+    });
+  }
+
+  _togglePanel() {
+    setState(() {
+      if (panelController.isPanelOpen) {
+        panelController.close();
+      } else {
+        panelController.open();
+      }
+    });
+  }
+
+  Future<bool> _confirmBeforeQuitting() async {
+    var willLeave = false;
+    await showDialog(context: context, builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('End Match'),
+        content: const Text('Are you sure you want to quit?'),
+        actions: <Widget>[
+          ElevatedButton(
+            child: const Text('Yes'),
+            onPressed: () {
+              Navigator.pop(context);
+              willLeave = true;
+            },
+          ),
+          OutlinedButton(
+            child: const Text('No'),
+            onPressed: () {
+              Navigator.pop(context);
+              willLeave = false;
+            },
+          ),
+        ],
+      );
+    });
+    return willLeave;
   }
 
   @override
@@ -75,32 +137,7 @@ class _StreetViewState extends State<StreetView> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        var willLeave = false;
-        await showDialog(context: context, builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('End Match'),
-            content: const Text('Are you sure you want to quit?'),
-            actions: <Widget>[
-              ElevatedButton(
-                child: const Text('Yes'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  willLeave = true;
-                },
-              ),
-              OutlinedButton(
-                child: const Text('No'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  willLeave = false;
-                },
-              ),
-            ],
-          );
-        });
-        return willLeave;
-      },
+      onWillPop: _confirmBeforeQuitting,
       child: Scaffold(
         extendBodyBehindAppBar: true,
         appBar: AppBar(
@@ -117,18 +154,13 @@ class _StreetViewState extends State<StreetView> {
 
                 controller: panelController,
 
-                // TODO -> Make functions for these
-                onPanelOpened: () => setState(() {
-                  _panelIsOpen = true;
-                  streetViewController?.setZoomGesturesEnabled(false);
-                  streetViewController?.setPanningGesturesEnabled(false);
-                }),
+                onPanelOpened: () {
+                 _disableStreetViewGestures();
+                },
 
-                onPanelClosed: () => setState(() {
-                  _panelIsOpen = false;
-                  streetViewController?.setZoomGesturesEnabled(true);
-                  streetViewController?.setPanningGesturesEnabled(true);
-                }),
+                onPanelClosed: () {
+                  _enableStreetViewGestures();
+                },
 
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24.0),
@@ -148,22 +180,20 @@ class _StreetViewState extends State<StreetView> {
                   initRadius: _searchRadius,
 
                   initSource: StreetViewSource.def,
-                  // initSource: StreetViewSource.outdoor,
-
                   streetNamesEnabled: false,
-                  // userNavigationEnabled: false,
 
                   onStreetViewCreated: (StreetViewController controller) async {
                     streetViewController = controller;
                   },
 
                   onPanoramaChangeListener: (location, e) {
-                    print("location:$location, e:$e");
-                    if (location == null) {
-                      print("No location found, trying another set of coordinates");
-                      _generateValidCoordinates();
-                    } else {
-                      _foundLocation();
+                    if (!_locationFound) {
+                      if (location == null) {
+                        _generateValidCoordinates();
+                      } else {
+                        _foundLocation();
+                        _setPanoId(location.panoId);
+                      }
                     }
                   },
                 ),
@@ -190,21 +220,31 @@ class _StreetViewState extends State<StreetView> {
 
         floatingActionButton: Visibility(
           visible: _locationFound,
-          child: FloatingActionButton(
-            tooltip: _panelIsOpen ? "Close" : "Open",
-            child: FaIcon(
-              _panelIsOpen ? FontAwesomeIcons.xmark: FontAwesomeIcons.earthAmericas
-            ),
-            onPressed: () {
-              // TODO -> Make functions for these
-              setState(() {
-                if (panelController.isPanelOpen) {
-                  panelController.close();
-                } else {
-                  panelController.open();
-                }
-              });
-            },
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FloatingActionButton(
+                heroTag: 'btnReset',
+                tooltip: "Back to start",
+                child: const FaIcon(FontAwesomeIcons.houseFlag),
+                onPressed: () {
+                 _gotoInitialStreetView();
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              FloatingActionButton(
+                heroTag: 'btnToggleMap',
+                tooltip: _panelIsOpen ? "Close" : "Open",
+                child: FaIcon(
+                  _panelIsOpen ? FontAwesomeIcons.xmark: FontAwesomeIcons.earthAmericas
+                ),
+                onPressed: () {
+                  _togglePanel();
+                },
+              ),
+            ],
           ),
         ),
 

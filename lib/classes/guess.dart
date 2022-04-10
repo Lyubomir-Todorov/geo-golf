@@ -12,7 +12,7 @@ class Guess {
   late double distance;
   late GuessRank quality;
 
-  Guess(this.coordinates, this.distance, this.quality);
+  Guess({required this.coordinates, required this.distance, required this.quality});
 
   BitmapDescriptor getMarkerColor() {
     switch(quality) {
@@ -22,4 +22,6 @@ class Guess {
       case GuessRank.bad: return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
     }
   }
+
+  // TODO -> Add a method that returns unit type, e.g return 'm' when distance < 1 (km)
 }

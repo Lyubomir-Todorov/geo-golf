@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../classes/user.dart' as fb;
+
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
 
@@ -23,8 +25,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     var t = prefs.getBool("showTutorial");
 
     Navigator.pushNamed(context, (t == true || t == null) ? '/how_to_play' : '/streetview');
-
-    //Navigator.pushNamedAndRemoveUntil(context, '/streetview', (route) => false);
   }
 
   @override
@@ -56,19 +56,57 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
 
               if (snapshot.connectionState == ConnectionState.done) {
                 Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
+                fb.User user = fb.User.fromJson(data);
                 return Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Hello, ${data['first_name']}!"),
-                        Text("Points: ${data['points']}"),
+
+                        const SizedBox(height: 32),
+
+                        Text(
+                          "Hello, ${user.getFirstName()}!",
+                          style: Theme.of(context).textTheme.headline1,
+                        ),
+                        Text(
+                          "${user.points} points",
+                          style: Theme.of(context).textTheme.headline1,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Level ${user.level}",
+                          style: Theme.of(context).textTheme.headline2,
+                        ),
+                        LinearProgressIndicator(
+                          value: data['xp'] / 100,
+                          minHeight: 16,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${user.xp} / 100 XP',
+                              style: Theme.of(context).textTheme.headline2,
+                            )
+                          ],
+                        )
                       ],
                     ),
 
-                    ElevatedButton(onPressed: () {_gotoMatch();}, child: const Text("Start Match"))
+                    const SizedBox(height: 32),
+
+                    SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {_gotoMatch();},
+                        child: const Text(
+                          "Start Match",
+                        )
+                      ),
+                    )
                   ],
                 );
               }

@@ -5,8 +5,11 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:georange/georange.dart';
+import 'package:nanoid/nanoid.dart';
 
 import '../classes/guess.dart';
+
+import 'stats.dart' as stats;
 
 
 GeoRange georange = GeoRange();
@@ -94,7 +97,7 @@ class _CountrySelectState extends State<CountrySelect> {
 
     setState(() {
 
-      _guesses.add(Guess(_guessPosition!, distance, quality));
+      _guesses.add(Guess(coordinates: _guessPosition!, distance: distance, quality: quality));
 
       final String markerIdVal = 'marker_id_$_markerIdCounter';
       final MarkerId markerId = MarkerId(markerIdVal);
@@ -124,12 +127,11 @@ class _CountrySelectState extends State<CountrySelect> {
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
       Navigator.pushNamed(
         context, '/match_results',
-        arguments: Results(_guesses, _markers)
+        arguments: stats.ScreenArguments(Results(_guesses, _markers), nanoid(), false)
       );
     }
   }
 
-  // TODO -> Change this to a custom image later?
   // https://github.com/flutter/plugins/blob/c5f34ad891cc4d47c821bf1309da734e69a98f96/packages/google_maps_flutter/google_maps_flutter/example/lib/marker_icons.dart#L75
 
   _createActualPositionMarker() {
@@ -141,7 +143,7 @@ class _CountrySelectState extends State<CountrySelect> {
       markerId: markerId,
       position: LatLng(_actualPosition!.latitude, _actualPosition!.longitude)
     );
-    _guesses.add(Guess(LatLng(_actualPosition!.latitude, _actualPosition!.longitude), 0, GuessRank.excellent));
+    _guesses.add(Guess(coordinates: LatLng(_actualPosition!.latitude, _actualPosition!.longitude), distance: 0, quality: GuessRank.excellent));
     _markers[markerId] = marker;
   }
 

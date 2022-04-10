@@ -56,7 +56,7 @@ class _HowToPlayState extends State<HowToPlay> {
                 ],
               ),
 
-              ElevatedButton(onPressed: () {_gotoStreetView();}, child: const Text('GO!'))
+              ElevatedButton(onPressed: () {_gotoStreetView();}, child: const Text('Let\'s Go!'))
             ],
           ),
         ),
