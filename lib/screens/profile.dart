@@ -243,6 +243,7 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
                     const SizedBox(height: 16),
 
                     ListTile(
+                      contentPadding: EdgeInsets.zero,
                       leading: Radio<Distance>(
                         value: Distance.metric,
                         groupValue: _user.unit,
@@ -258,6 +259,7 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
                     ),
 
                     ListTile(
+                      contentPadding: EdgeInsets.zero,
                       leading: Radio<Distance>(
                         value: Distance.imperial,
                         groupValue: _user.unit,
