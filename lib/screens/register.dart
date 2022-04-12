@@ -26,10 +26,11 @@ class _RegisterState extends State<Register> {
   final _passwordConfirmFieldController = TextEditingController();
 
   _register() async {
+
+    FocusManager.instance.primaryFocus?.unfocus();
+
     try {
-
       // Create user
-
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailFieldController.text,
         password: _passwordFieldController.text

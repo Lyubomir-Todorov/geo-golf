@@ -20,6 +20,7 @@ class _LoginState extends State<Login> {
   final _passwordFieldController = TextEditingController();
 
   _signIn() async {
+    FocusManager.instance.primaryFocus?.unfocus();
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(

@@ -76,6 +76,8 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
 
   _updateInfo() async {
 
+    FocusManager.instance.primaryFocus?.unfocus();
+
     FirebaseAuth.instance.currentUser?.updateEmail(_emailFieldController.text).then((value) {
       DocumentReference user = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
 
