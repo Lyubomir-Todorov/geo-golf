@@ -41,12 +41,9 @@ class _HowToPlayState extends State<HowToPlay> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
             children: [
               const SizedBox(height: 32),
-
 
               const Text(
                 'You are about to be dropped in a random location on planet Earth; it is up to you to figure out where the heck you are!'
