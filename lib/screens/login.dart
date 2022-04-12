@@ -36,6 +36,7 @@ class _LoginState extends State<Login> {
         case('too-many-requests'): errorMessage = "Too many requests, try again later"; break;
         case('user-not-found'): errorMessage = "No user found"; break;
         case('wrong-password'): errorMessage = "Incorrect password"; break;
+        case('user-disabled'): errorMessage = "This account is currently disabled"; break;
         default: errorMessage = e.toString();
       }
       Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, errorMessage);
