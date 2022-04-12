@@ -41,104 +41,111 @@ class _HowToPlayState extends State<HowToPlay> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
+              Expanded(
+                child: ListView(
+                  children: [
+                    const SizedBox(height: 32),
 
-              const Text(
-                'You are about to be dropped in a random location on planet Earth; it is up to you to figure out where the heck you are!'
-              ),
+                    const Text(
+                      'You are about to be dropped in a random location on planet Earth; it is up to you to figure out where the heck you are!'
+                    ),
 
-              const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-              Card(
-                margin: EdgeInsets.zero,
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Theme.of(context).primaryColor, width: 4),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    Card(
+                      margin: EdgeInsets.zero,
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: Theme.of(context).primaryColor, width: 4),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'You have 5 attempts!',
-                              style: Theme.of(context).textTheme.headline1
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'You have 5 attempts!',
+                                    style: Theme.of(context).textTheme.headline1
+                                  ),
+                                  Text(
+                                    'Get as close as possible',
+                                    style: Theme.of(context).textTheme.headline5,
+                                  ),
+                                ],
+                              ),
                             ),
-                            Text(
-                              'Get as close as possible',
-                              style: Theme.of(context).textTheme.headline5,
+                            const Flexible(
+                              child: FaIcon(
+                                FontAwesomeIcons.locationDot,
+                                size: 72, color:
+                                Colors.red,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const Flexible(
-                        child: FaIcon(
-                          FontAwesomeIcons.locationDot,
-                          size: 72, color:
-                          Colors.red,
-                        ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    const Text('Use the map to place a marker where you think you are, then press "Guess"!'),
+
+                    const SizedBox(height: 16),
+
+                    Card(
+                      margin: EdgeInsets.zero,
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: Theme.of(context).primaryColor, width: 4),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              const Text('Use the map to place a marker where you think you are, then press "Guess"!'),
-
-              const SizedBox(height: 16),
-
-              Card(
-                margin: EdgeInsets.zero,
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Theme.of(context).primaryColor, width: 4),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'The marker you drop will be a different color based on how far away your guess is.',
-                        style: Theme.of(context).textTheme.headline6?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: Colors.grey
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(markerColors.length, (index) {
-                          return Column(
-                            children: [
-                              const SizedBox(height: 16.0),
-                              FaIcon(
-                                FontAwesomeIcons.locationDot,
-                                size: 32, color:
-                                markerColors[index],
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'The marker you drop will be a different color based on how far away your guess is.',
+                              style: Theme.of(context).textTheme.headline6?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: Colors.grey
                               ),
-                              const SizedBox(height: 8.0),
-                              Text(markerRange[index]),
-                            ],
-                          );
-                        }).toList(),
-                      )
-                    ],
-                  ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: List.generate(markerColors.length, (index) {
+                                return Column(
+                                  children: [
+                                    const SizedBox(height: 16.0),
+                                    FaIcon(
+                                      FontAwesomeIcons.locationDot,
+                                      size: 32, color:
+                                      markerColors[index],
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    Text(markerRange[index]),
+                                  ],
+                                );
+                              }).toList(),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 32),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
