@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:georange/georange.dart';
 import 'package:confetti/confetti.dart';
+import 'dart:math' as math;
 
 import '../classes/guess.dart';
 import '../classes/toast.dart';
@@ -51,41 +52,49 @@ class _MatchResultsState extends State<MatchResults> {
     // 300 km ~ 7
     // 600 km ~ 5
 
-    var threshold = 1000;
-
     double distance = georange.distance(
       Point(latitude: pointA.latitude, longitude: pointA.longitude),
       Point(latitude: pointB.latitude, longitude: pointB.longitude),
     );
-    print(distance);
 
-    return (threshold / (distance+0.01));
+
+    double zoom = 0;
+    if (distance < 2) {
+      zoom = 14;
+    } else if (distance < 4) {
+      zoom = 12;
+    } else if (distance < 8) {
+      zoom = 10;
+    } else if (distance < 16) {
+      zoom = 8;
+    } else if (distance < 32) {
+      zoom = 6;
+    } else if (distance < 256) {
+      zoom = 4;
+    } else if (distance < 512) {
+      zoom = 2;
+     }else if (distance < 1024) {
+      zoom = 0;
+    }
+
+    print(zoom);
+    return (zoom);
   }
 
   void _onMapCreated(GoogleMapController controller) {
     _controller = controller;
-    /*
+
     _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(target: _guesses.last.coordinates, zoom: distanceToZoom(_guesses.last.coordinates, _bestGuess!.coordinates))
       ),
-    );
-    */
-    
-    _controller?.moveCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-            northeast: _guesses.last.coordinates, southwest: _bestGuess!.coordinates
-        ),
-        50
-      )
     );
   }
 
   _moveCamera(LatLng target) {
     _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: target, zoom: 4)
+        CameraPosition(target: target, zoom: distanceToZoom(_guesses.last.coordinates, target))
       ),
     );
   }
@@ -259,7 +268,6 @@ class _MatchResultsState extends State<MatchResults> {
               myLocationButtonEnabled: false,
               compassEnabled: false,
               rotateGesturesEnabled: false,
-              onCameraMoveStarted: () => (_controller!.getZoomLevel().then((value) => print(value))),
               initialCameraPosition: const CameraPosition(
                 target: LatLng(30, -45),
               ),

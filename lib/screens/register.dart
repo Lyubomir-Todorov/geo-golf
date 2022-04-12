@@ -23,6 +23,7 @@ class _RegisterState extends State<Register> {
   final _nameFieldController = TextEditingController();
   final _emailFieldController = TextEditingController();
   final _passwordFieldController = TextEditingController();
+  final _passwordConfirmFieldController = TextEditingController();
 
   _register() async {
     try {
@@ -80,9 +81,7 @@ class _RegisterState extends State<Register> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
 
-                  Image.asset('images/splash_register.png'),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   Text(
                     'Sign up',
                     style: Theme.of(context).textTheme.headline5,
@@ -117,7 +116,7 @@ class _RegisterState extends State<Register> {
 
                   TextFormField(
                     keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
+                    textInputAction: TextInputAction.next,
                     controller: _passwordFieldController,
                     obscureText: true,
                     decoration: const InputDecoration(
@@ -128,8 +127,21 @@ class _RegisterState extends State<Register> {
                       RequiredValidator(errorText: 'Password is required'),
                       MinLengthValidator(8, errorText: 'Password must be at least 8 digits long'),
                       MaxLengthValidator(32, errorText: 'Password must be less than 32 digits long'),
+                      PatternValidator(r"\d", errorText: 'Password must have at least one digit'),
                       PatternValidator(r'(?=.*?[#?!@$%^&*-])', errorText: 'Password must have at least one special character')
                     ])
+                  ),
+
+                  TextFormField(
+                    keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.done,
+                    controller: _passwordConfirmFieldController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Reenter your password',
+                      labelText: 'Confirm password',
+                    ),
+                    validator: (val) => MatchValidator(errorText: 'Passwords do not match').validateMatch(val!, _passwordFieldController.text)
                   ),
 
                   const SizedBox(height: 16),
