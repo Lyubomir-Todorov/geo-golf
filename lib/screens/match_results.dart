@@ -6,11 +6,15 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:georange/georange.dart';
 import 'package:confetti/confetti.dart';
 
 import '../classes/guess.dart';
-import '../classes/results.dart';
+import '../classes/toast.dart';
+import '../enum/distance.dart';
 import 'stats.dart' as stats;
+
+GeoRange georange = GeoRange();
 
 class MatchResults extends StatefulWidget {
   const MatchResults({Key? key}) : super(key: key);
@@ -24,23 +28,57 @@ class _MatchResultsState extends State<MatchResults> {
   bool _resultsInit = false;
   bool _shownAsPreviousMatch = false;
   bool _favourite = false;
+  late Distance _unit;
   late String _uid;
+  late ConfettiController _confettiController;
 
   GoogleMapController? _controller;
   final PanelController panelController = PanelController();
   Map<MarkerId, Marker> _markers = <MarkerId, Marker>{};
 
   List<Guess> _guesses = [];
+  Guess? _bestGuess;
   double? _bestDistance;
 
   // TODO -> Adjust zoom level according to best distance (closer = more zoomed in)
+  // TODO -> Get the two markers always within zoom
+
+  double distanceToZoom(LatLng pointA, LatLng pointB) {
+    // The smaller the distance > Larger the zoom
+    // 1 km ~ 14.7
+    // 3 km ~ 13
+    // 137 km ~ 8.5
+    // 300 km ~ 7
+    // 600 km ~ 5
+
+    var threshold = 1000;
+
+    double distance = georange.distance(
+      Point(latitude: pointA.latitude, longitude: pointA.longitude),
+      Point(latitude: pointB.latitude, longitude: pointB.longitude),
+    );
+    print(distance);
+
+    return (threshold / (distance+0.01));
+  }
 
   void _onMapCreated(GoogleMapController controller) {
     _controller = controller;
+    /*
     _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: _guesses.last.coordinates, zoom: 4)
+        CameraPosition(target: _guesses.last.coordinates, zoom: distanceToZoom(_guesses.last.coordinates, _bestGuess!.coordinates))
       ),
+    );
+    */
+    
+    _controller?.moveCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+            northeast: _guesses.last.coordinates, southwest: _bestGuess!.coordinates
+        ),
+        50
+      )
     );
   }
 
@@ -68,13 +106,15 @@ class _MatchResultsState extends State<MatchResults> {
       _shownAsPreviousMatch = args.results.isHistorical;
       _favourite = args.favourite;
       _uid = args.uid;
+      _unit = args.unit;
 
       var t = _guesses.map((v) => v).toList();
       t.removeLast();
 
-      _bestDistance = t.reduce(
-              (value, element) => value.distance < element.distance ? value : element
-      ).distance;
+      _bestGuess = t.reduce(
+        (value, element) => value.distance < element.distance ? value : element
+      );
+      _bestDistance=_bestGuess?.distance;
     });
 
   }
@@ -121,13 +161,10 @@ class _MatchResultsState extends State<MatchResults> {
       matches.set({
         _uid : obj,
       },
-      SetOptions(merge : true)).then((value) => print("Match history Added"))
-        .catchError((error) => print("Failed to add match history: $error"));
+      SetOptions(merge : true)).catchError((e) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Failed to add match to history"));
 
     } on FirebaseAuthException catch (e) {
-      print(e);
-    } catch (e) {
-      print(e);
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, e.toString());
     }
   }
 
@@ -138,13 +175,10 @@ class _MatchResultsState extends State<MatchResults> {
       doc.update({
         "xp" : FieldValue.increment(5),
         "points" : FieldValue.increment(1),
-      }).then((value) => print("Player stats Updated"))
-          .catchError((error) => print("Failed to update player stats: $error"));
+      }).catchError((e) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Error updating profile!"));
 
     } on FirebaseAuthException catch (e) {
-      print(e);
-    } catch (e) {
-      print(e);
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, e.toString());
     }
   }
 
@@ -157,13 +191,10 @@ class _MatchResultsState extends State<MatchResults> {
 
       matches.update({
         "$_uid.favourite" : _favourite,
-      }).then((value) => print("Match history Favourite updated"))
-        .catchError((error) => print("Failed to update match history favouriting: $error"));
+      }).catchError((e) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Error updating match!"));
 
     } on FirebaseAuthException catch (e) {
-      print(e);
-    } catch (e) {
-      print(e);
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, e.toString());
     }
   }
 
@@ -173,15 +204,24 @@ class _MatchResultsState extends State<MatchResults> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    _confettiController.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
 
     if (!_resultsInit) {
       _loadMapData();
-
+      _confettiController = ConfettiController(duration: const Duration(seconds: 1));
       // Only add to Firebase if we have navigated from an actual game
       if (!_shownAsPreviousMatch) {
         _addToMatchHistory();
         _incrementPlayerStats();
+        if (GuessQuality.getRank(_bestDistance!) == GuessRank.excellent) {
+          _confettiController.play();
+        }
       }
     }
 
@@ -210,17 +250,40 @@ class _MatchResultsState extends State<MatchResults> {
           topRight: Radius.circular(24.0),
         ),
         controller: panelController,
-        body: GoogleMap(
-          onMapCreated: _onMapCreated,
-          zoomControlsEnabled: false,
-          myLocationEnabled: false,
-          myLocationButtonEnabled: false,
-          compassEnabled: false,
-          rotateGesturesEnabled: false,
-          initialCameraPosition: const CameraPosition(
-            target: LatLng(30, -45),
-          ),
-          markers: Set<Marker>.of(_markers.values),
+        body: Stack(
+          children: [
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              zoomControlsEnabled: false,
+              myLocationEnabled: false,
+              myLocationButtonEnabled: false,
+              compassEnabled: false,
+              rotateGesturesEnabled: false,
+              onCameraMoveStarted: () => (_controller!.getZoomLevel().then((value) => print(value))),
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(30, -45),
+              ),
+              markers: Set<Marker>.of(_markers.values),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: ConfettiWidget(
+                emissionFrequency: 0,
+                maxBlastForce: 50,
+                shouldLoop: false,
+                confettiController: _confettiController,
+                colors: const [
+                  Colors.green,
+                  Colors.blue,
+                  Colors.pink,
+                  Colors.orange,
+                  Colors.purple
+                ],
+                blastDirectionality: BlastDirectionality
+                    .explosive, // don't specify a direction, blast randomly
+              ),
+            ),
+          ],
         ),
 
         panel: Padding(
@@ -234,7 +297,11 @@ class _MatchResultsState extends State<MatchResults> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(child: Text('You were $_bestDistance km away!')),
+                    Center(child:
+                      _unit == Distance.imperial ?
+                      Text('You were ${DistanceConversion.getDistanceAsImperial(_bestDistance!, 0)} away!'):
+                      Text('You were ${DistanceConversion.getDistanceAsMetric(_bestDistance!, 0)} away!')
+                    ),
                     Visibility(
                       visible: !_shownAsPreviousMatch,
                       child: ElevatedButton(
@@ -253,7 +320,10 @@ class _MatchResultsState extends State<MatchResults> {
                       children: [
                         ListTile(
                           title: Text("Attempt ${index+1}"),
-                          subtitle: Text("${_guesses[index].distance} km"),
+                          subtitle:
+                          _unit == Distance.imperial ?
+                          Text(DistanceConversion.getDistanceAsImperial(_guesses[index].distance, 0)):
+                          Text(DistanceConversion.getDistanceAsMetric(_guesses[index].distance, 0)),
                           trailing: IconButton(
                             onPressed: () {
                               _moveCamera(_guesses[index].coordinates);

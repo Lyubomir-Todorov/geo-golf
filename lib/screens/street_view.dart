@@ -1,11 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_project/data/country_data.dart';
 import 'package:final_project/screens/country_select.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_google_street_view/flutter_google_street_view.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:wakelock/wakelock.dart';
 import 'dart:math' as math;
+
+import '../classes/toast.dart';
+import '../enum/distance.dart';
 
 math.Random ran = math.Random.secure();
 
@@ -31,6 +36,14 @@ class _StreetViewState extends State<StreetView> {
   double _searchRadius = 5;
   bool _locationFound = false;
   bool _panelIsOpen = false;
+  Distance _unit = Distance.metric;
+
+  _getUserInfo() async {
+    DocumentReference users = FirebaseFirestore.instance.collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid).get().then((value) {
+          _unit = Distance.values[value.data()!['unit']];
+    }).catchError((e) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Error getting user info!")) as DocumentReference<Object?>;
+  }
 
   _generateValidCoordinates() {
     var randomArea = areasToSearch[ran.nextInt(areasToSearch.length)];
@@ -62,8 +75,7 @@ class _StreetViewState extends State<StreetView> {
 
   _gotoInitialStreetView() async {
     setState(() {
-      streetViewController!.setPosition(panoId: _streetViewId).catchError((e){
-      });
+      streetViewController!.setPosition(panoId: _streetViewId);
     });
   }
 
@@ -123,6 +135,7 @@ class _StreetViewState extends State<StreetView> {
   @override
   void initState() {
     super.initState();
+    _getUserInfo();
     _generateValidCoordinates();
     Wakelock.enable();
   }
@@ -172,7 +185,8 @@ class _StreetViewState extends State<StreetView> {
                 panel: _locationFound ? CountrySelect(
                   actualPosition: Coordinates(
                     _coordinates.latitude, _coordinates.longitude
-                  )
+                  ),
+                  unit: _unit,
                 ) : const Text(''),
                 body: FlutterGoogleStreetView(
 
@@ -223,13 +237,16 @@ class _StreetViewState extends State<StreetView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              FloatingActionButton(
-                heroTag: 'btnReset',
-                tooltip: "Back to start",
-                child: const FaIcon(FontAwesomeIcons.houseFlag),
-                onPressed: () {
-                 _gotoInitialStreetView();
-                },
+              Visibility(
+                visible: !_panelIsOpen,
+                child: FloatingActionButton(
+                  heroTag: 'btnReset',
+                  tooltip: "Back to start",
+                  child: const FaIcon(FontAwesomeIcons.houseFlag),
+                  onPressed: () {
+                   _gotoInitialStreetView();
+                  },
+                ),
               ),
 
               const SizedBox(height: 10),

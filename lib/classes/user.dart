@@ -1,13 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../enum/distance.dart';
+
 class User {
   late String fullName;
   late int level;
   late String joinDate;
   late int points;
   late int xp;
+  late Distance unit;
 
-  User({required this.fullName, required this.level, required this.joinDate, required this.points, required this.xp});
+  User({required this.fullName, required this.level, required this.joinDate, required this.points, required this.xp, required this.unit});
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       fullName: json['name'],
@@ -15,6 +18,7 @@ class User {
       joinDate: json['member_since'],
       points: json['points'],
       xp: json['xp'],
+      unit: Distance.values[json['unit']],
     );
   }
 

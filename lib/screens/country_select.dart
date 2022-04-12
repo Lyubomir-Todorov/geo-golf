@@ -1,4 +1,5 @@
 import 'package:final_project/classes/results.dart';
+import 'package:final_project/enum/distance.dart';
 import 'package:final_project/screens/street_view.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -16,7 +17,8 @@ GeoRange georange = GeoRange();
 
 class CountrySelect extends StatefulWidget {
   final Coordinates actualPosition;
-  const CountrySelect({Key? key, required this.actualPosition}) : super(key: key);
+  final Distance unit;
+  const CountrySelect({Key? key, required this.actualPosition, required this.unit}) : super(key: key);
 
   @override
   _CountrySelectState createState() => _CountrySelectState();
@@ -85,15 +87,7 @@ class _CountrySelectState extends State<CountrySelect> {
     );
 
     GuessRank quality;
-    if (distance < 10) {
-      quality = GuessRank.excellent;
-    } else if (distance < 250) {
-      quality = GuessRank.good;
-    } else if (distance < 500) {
-      quality = GuessRank.fair;
-    } else {
-      quality = GuessRank.bad;
-    }
+    quality = GuessQuality.getRank(distance);
 
     setState(() {
 
@@ -127,7 +121,7 @@ class _CountrySelectState extends State<CountrySelect> {
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
       Navigator.pushNamed(
         context, '/match_results',
-        arguments: stats.ScreenArguments(Results(_guesses, _markers), nanoid(), false)
+        arguments: stats.ScreenArguments(Results(_guesses, _markers), nanoid(), false, widget.unit)
       );
     }
   }
@@ -203,7 +197,7 @@ class _CountrySelectState extends State<CountrySelect> {
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Text(
-                    'Best distance: ${_bestDistance}km'
+                    'Best distance: ${widget.unit == Distance.metric ? DistanceConversion.getDistanceAsMetric(_bestDistance!, 0) : DistanceConversion.getDistanceAsImperial(_bestDistance!, 0)}'
                   ),
                 ),
               ): const Text('')

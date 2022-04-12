@@ -1,23 +1,29 @@
 import 'package:final_project/classes/match_history.dart';
+import 'package:final_project/enum/distance.dart';
+import 'package:final_project/widgets/chart_per_match.dart';
 import 'package:final_project/widgets/chart_performance.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 import '../classes/guess.dart';
 import '../classes/results.dart';
+import '../classes/toast.dart';
 
 class ScreenArguments {
   late Results results;
   late String uid;
   late bool favourite;
+  late Distance unit;
 
-  ScreenArguments(this.results, this.uid, this.favourite);
+  ScreenArguments(this.results, this.uid, this.favourite, this.unit);
 }
 
 class Stats extends StatefulWidget {
+  setFuture() => createState()._setMatchHistory();
   const Stats({Key? key}) : super(key: key);
 
   @override
@@ -33,14 +39,39 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
   final Map<MarkerId, Marker> _markers = <MarkerId, Marker>{};
   int _markerIdCounter = 1;
   bool _showAll = true;
-  
-  DocumentReference matches =  FirebaseFirestore.instance.collection('match_history')
-      .doc(FirebaseAuth.instance.currentUser?.uid);
+  Distance _unit = Distance.metric;
+
+  final CarouselController _carouselController = CarouselController();
+  int _carouselIndex = 0;
 
   late Future<DocumentSnapshot> future;
 
   Future<DocumentSnapshot> _getMatchHistory() async {
+
+    DocumentReference matches =  FirebaseFirestore.instance.collection('match_history')
+        .doc(FirebaseAuth.instance.currentUser?.uid);
+
     return await matches.get();
+  }
+
+  _getUnitPreference() {
+    DocumentReference user =  FirebaseFirestore.instance.collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid);
+    user.get().then((value) {
+      Map<String, dynamic> data = value.data() as Map<String, dynamic>;
+      _unit = Distance.values[data['unit']];
+    });
+  }
+
+
+
+  _setMatchHistory() {
+    setState(() {
+      match.clear();
+      matchFavourite.clear();
+      future = _getMatchHistory();
+      _setMatchData(future);
+    });
   }
 
   _setMatchData(Future<DocumentSnapshot> d) {
@@ -122,15 +153,10 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
 
     Navigator.pushNamed(context, '/match_results',
       arguments: ScreenArguments(
-        Results(_guesses, _markers, isHistorical: true), match[ind].uid, match[ind].favourite
+        Results(_guesses, _markers, isHistorical: true), match[ind].uid, match[ind].favourite, _unit
       )
     ).whenComplete(() {
-      setState(() {
-        match.clear();
-        matchFavourite.clear();
-        future = _getMatchHistory();
-        _setMatchData(future);
-      });
+      _setMatchHistory();
     });
   }
 
@@ -160,16 +186,11 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
 
       matches.update({
         "${match[ind].uid}.favourite" : match[ind].favourite,
-      }).then((value) => print("Match history Favourite updated"))
-        .catchError((error) => print("Failed to update match history favouriting: $error"));
+      }).catchError((error) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Error updating favourites!"));
 
     } on FirebaseAuthException catch (e) {
-      print(e);
-    } catch (e) {
-      print(e);
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, e.toString());
     }
-
-
   }
 
   @override
@@ -183,9 +204,10 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
     // This includes when we favourite and unfavourite things
     // Bad UX / Efficiency if we need to fetch from firebase each time we do that
 
-    future = _getMatchHistory();
-    _setMatchData(future);
     super.initState();
+    future = _getMatchHistory();
+    _getUnitPreference();
+    _setMatchData(future);
   }
 
   @override
@@ -218,13 +240,57 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
 
               if (snapshot.connectionState == ConnectionState.done) {
 
+                List<Widget> graphs = [
+                  ChartPerformance(
+                    unit: _unit,
+                    data: _showAll ? match.reversed.toList():
+                    matchFavourite.reversed.toList()
+                  ),
+                  ChartPerMatch(
+                    unit: _unit,
+                    data: _showAll ? match.reversed.toList():
+                    matchFavourite.reversed.toList()
+                  )
+                ];
+
                 return Column(
                   children: [
                     Flexible(
-                      child: ChartPerformance(data: _showAll ? match.reversed.toList() : matchFavourite.reversed.toList()),
+                      child: CarouselSlider(
+                        carouselController: _carouselController,
+                        items: graphs,
+                        options: CarouselOptions(
+                          height: 300,
+                          viewportFraction: 1,
+                          onPageChanged: (index, reason) {
+                            setState(() {
+                              _carouselIndex = index;
+                            });
+                          }
+                        ),
+                      )
                     ),
 
-                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: graphs.asMap().entries.map((entry) {
+                        double size = _carouselIndex == entry.key ? 8.0 : 7.0;
+                        return GestureDetector(
+                          onTap: () => _carouselController.animateToPage(entry.key),
+                          child: Container(
+                            width: size,
+                            height: size,
+                            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black
+                                .withOpacity(_carouselIndex == entry.key ? 0.7 : 0.4)),
+                          ),
+                        );
+                      }).toList()
+                    ),
+
+                    const SizedBox(height: 16),
 
                     Row(
                       children: [
@@ -249,7 +315,11 @@ class _StatsState extends State<Stats> with AutomaticKeepAliveClientMixin<Stats>
                           return Column(
                             children: [
                               ListTile(
-                                title: Text('${m[index].bestDistance} km'),
+                                title: Text(
+                                  _unit == Distance.imperial ?
+                                  DistanceConversion.getDistanceAsImperial(m[index].bestDistance, 0):
+                                  DistanceConversion.getDistanceAsMetric(m[index].bestDistance, 0)
+                                ),
                                 subtitle: Text('${m[index].date} - ${m[index].time}'),
                                 leading: IconButton(
                                   onPressed: () {_navigateToMatchResults(index);},

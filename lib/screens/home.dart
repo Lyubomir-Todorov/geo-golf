@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../classes/user.dart' as fb;
 
 class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+  final Future<DocumentSnapshot> future;
+  const Home({Key? key, required this.future}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
@@ -14,11 +17,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
 
-  Future<DocumentSnapshot> _getUserInfo() async {
-    DocumentReference users = FirebaseFirestore.instance.collection('users')
-                              .doc(FirebaseAuth.instance.currentUser?.uid);
-    return users.get();
-  }
+  late Future<DocumentSnapshot> future;
 
   _gotoMatch() async {
     final prefs = await SharedPreferences.getInstance();
@@ -28,13 +27,22 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    future = widget.future;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-
     super.build(context);
-
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -44,14 +52,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: FutureBuilder(
-            future: _getUserInfo(),
+            future: future,
             builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
               if (snapshot.hasError) {
-                return const Text("Something went wrong");
+                return const Center(child: Text("Something went wrong"));
               }
 
               if (snapshot.hasData && !snapshot.data!.exists) {
-                return const Text("Document does not exist");
+                return const Center(child: Text("Document does not exist"));
               }
 
               if (snapshot.connectionState == ConnectionState.done) {

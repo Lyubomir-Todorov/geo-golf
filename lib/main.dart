@@ -29,8 +29,6 @@ class MyApp extends StatelessWidget {
 
     final textTheme = Theme.of(context).textTheme;
 
-    // TODO -> Custom theme
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Final Project',

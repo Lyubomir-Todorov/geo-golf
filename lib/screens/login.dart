@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:form_field_validator/form_field_validator.dart';
+import '../classes/toast.dart';
 
 class Login extends StatefulWidget {
   @override
@@ -18,8 +20,9 @@ class _LoginState extends State<Login> {
   final _passwordFieldController = TextEditingController();
 
   _signIn() async {
+
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailFieldController.text,
         password: _passwordFieldController.text
       );
@@ -28,14 +31,14 @@ class _LoginState extends State<Login> {
       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
 
     } on FirebaseAuthException catch (e) {
-
-      // TODO: Change this to show in app errors, such as a snackbar
-
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
+      String errorMessage;
+      switch(e.code) {
+        case('too-many-requests'): errorMessage = "Too many requests, try again later"; break;
+        case('user-not-found'): errorMessage = "No user found"; break;
+        case('wrong-password'): errorMessage = "Incorrect password"; break;
+        default: errorMessage = e.toString();
       }
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, errorMessage);
     }
   }
 
@@ -50,6 +53,7 @@ class _LoginState extends State<Login> {
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Form(
+            key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -74,9 +78,10 @@ class _LoginState extends State<Login> {
                         hintText: 'Enter your email address',
                         labelText: 'Email Address',
                       ),
-                      validator: (value) {
-                        return null;
-                      },
+                      validator: MultiValidator([
+                        RequiredValidator(errorText: "Email is required"),
+                        EmailValidator(errorText: "Invalid email")
+                      ])
                     ),
 
                     TextFormField(
@@ -88,15 +93,19 @@ class _LoginState extends State<Login> {
                         hintText: 'Enter your password',
                         labelText: 'Password',
                       ),
-                      validator: (value) {
-                        return null;
-                      },
+                      validator: MultiValidator([
+                        RequiredValidator(errorText: "Password is required"),
+                      ])
                     ),
 
                     const SizedBox(height: 16.0),
 
                     ElevatedButton(
-                      onPressed: () {_signIn();},
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          _signIn();
+                        }
+                      },
                       child: const Text('Login'),
                     ),
                   ],
