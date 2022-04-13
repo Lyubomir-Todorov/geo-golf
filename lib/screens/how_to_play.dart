@@ -50,7 +50,10 @@ class _HowToPlayState extends State<HowToPlay> {
                     const SizedBox(height: 32),
 
                     const Text(
-                      'You are about to be dropped in a random location on planet Earth; it is up to you to figure out where the heck you are!'
+                      'You are about to be dropped in a random location on planet Earth; it is up to you to figure out where the heck you are!',
+                      style: TextStyle(
+                        fontSize: 16
+                      ),
                     ),
 
                     const SizedBox(height: 16),
@@ -73,12 +76,16 @@ class _HowToPlayState extends State<HowToPlay> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'You have 5 attempts!',
-                                    style: Theme.of(context).textTheme.headline1
+                                    'You have 5 Attempts',
+                                    style: Theme.of(context).textTheme.headline1?.copyWith(
+                                      fontSize: 32,
+                                    )
                                   ),
                                   Text(
-                                    'Get as close as possible',
-                                    style: Theme.of(context).textTheme.headline5,
+                                    'Get as close as possible!',
+                                    style: Theme.of(context).textTheme.headline5?.copyWith(
+                                      fontSize: 20,
+                                    )
                                   ),
                                 ],
                               ),
@@ -97,7 +104,12 @@ class _HowToPlayState extends State<HowToPlay> {
 
                     const SizedBox(height: 16),
 
-                    const Text('Use the map to place a marker where you think you are, then press "Guess"!'),
+                    const Text(
+                      'Use the map to place a marker where you think you are, then press "Guess"!',
+                      style: TextStyle(
+                          fontSize: 16
+                      ),
+                    ),
 
                     const SizedBox(height: 16),
 
