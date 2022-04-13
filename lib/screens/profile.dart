@@ -92,7 +92,14 @@ class _ProfileState extends State<Profile> with AutomaticKeepAliveClientMixin {
         _updating = false;
         _future = _getUserInfo();
       });
-    }).catchError((e) => Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, "Error updating info!"));
+    }).catchError((e) {
+      String errorMessage = "There was an error!";
+      switch((e as FirebaseAuthException).code) {
+        case("requires-recent-login"): errorMessage = "Updating email requires recent login!"; break;
+      }
+
+      Toast.display(context, FontAwesomeIcons.solidCircleXmark, Colors.white, Colors.red, errorMessage);
+    });
   }
 
   _updateUnit() {
